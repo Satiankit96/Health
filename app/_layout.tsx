@@ -11,7 +11,12 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
+
+import { AuthProvider, useAuth } from '@/lib/auth';
+import { SignIn } from '@/components/SignIn';
+import { Colors } from '@/constants/theme';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -45,9 +50,44 @@ export default function RootLayout() {
   }
 
   return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
+}
+
+// Decides what to show once fonts are loaded:
+//  - while the session is resolving: a spinner
+//  - signed out: the SignIn screen
+//  - signed in: the app's tab/stack navigator
+function AuthGate() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.splash}>
+        <ActivityIndicator color={Colors.terra} />
+      </View>
+    );
+  }
+
+  if (!session) {
+    return <SignIn />;
+  }
+
+  return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.bg,
+  },
+});
