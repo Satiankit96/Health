@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { DateBar } from '@/components/DateBar';
+import { StreakTile } from '@/components/StreakTile';
 import { EnergyNotesCard } from '@/components/cards/EnergyNotesCard';
 import { HairCareCard } from '@/components/cards/HairCareCard';
 import { HydrationCard } from '@/components/cards/HydrationCard';
@@ -8,7 +9,17 @@ import { MovementCard } from '@/components/cards/MovementCard';
 import { NourishmentCard } from '@/components/cards/NourishmentCard';
 import { SleepCard } from '@/components/cards/SleepCard';
 import { WeightCard } from '@/components/cards/WeightCard';
-import { type DayData, DEFAULT_DAY, getDay, saveDay, toDateKey } from '@/lib/storage';
+import {
+  type DayData,
+  type Settings,
+  DEFAULT_DAY,
+  DEFAULT_SETTINGS,
+  getDay,
+  getSettings,
+  saveDay,
+  saveSettings,
+  toDateKey,
+} from '@/lib/storage';
 import { Colors, Spacing } from '@/constants/theme';
 
 function addDays(date: Date, n: number): Date {
@@ -20,12 +31,19 @@ function addDays(date: Date, n: number): Date {
 export default function TodayScreen() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [dayData, setDayData] = useState<DayData>({ ...DEFAULT_DAY });
+  const [settings, setSettings] = useState<Settings>({ ...DEFAULT_SETTINGS });
   const [savedVisible, setSavedVisible] = useState(false);
 
   const latestData = useRef<DayData>({ ...DEFAULT_DAY });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Load settings once on mount
+  useEffect(() => {
+    getSettings().then(setSettings);
+  }, []);
+
+  // Load day data whenever the selected date changes; cancel any pending save first
   useEffect(() => {
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
@@ -43,6 +61,7 @@ export default function TodayScreen() {
     };
   }, [selectedDate]);
 
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -66,8 +85,33 @@ export default function TodayScreen() {
     }, 500);
   }
 
+  // Settings writes are discrete actions (no debounce needed)
+  function updateSettings(patch: Partial<Settings>) {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveSettings(next);
+      return next;
+    });
+  }
+
   return (
     <View style={styles.container}>
+      {/* Streak tiles — above the date bar */}
+      <View style={styles.streakRow}>
+        <StreakTile
+          label="Sugar-free"
+          accent={Colors.sage}
+          startDate={settings.sugarStart}
+          onChange={(sugarStart) => updateSettings({ sugarStart })}
+        />
+        <StreakTile
+          label="Focus"
+          accent={Colors.plum}
+          startDate={settings.focusStart}
+          onChange={(focusStart) => updateSettings({ focusStart })}
+        />
+      </View>
+
       <DateBar
         date={selectedDate}
         onPrev={() => setSelectedDate((d) => addDays(d, -1))}
@@ -75,6 +119,7 @@ export default function TodayScreen() {
         onToday={() => setSelectedDate(new Date())}
         saved={savedVisible}
       />
+
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -125,6 +170,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.bg,
+  },
+  streakRow: {
+    flexDirection: 'row',
+    backgroundColor: Colors.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.line,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xl,
   },
   content: {
     padding: Spacing.md,

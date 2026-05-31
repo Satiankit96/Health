@@ -46,6 +46,36 @@ export const DEFAULT_DAY: DayData = {
   notes: '',
 };
 
+// ─── Settings ────────────────────────────────────────────────────────────────
+
+export interface Settings {
+  sugarStart: string | null;
+  focusStart: string | null;
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  sugarStart: null,
+  focusStart: null,
+};
+
+const SETTINGS_KEY = 'daily-log:settings';
+
+export async function getSettings(): Promise<Settings> {
+  try {
+    const raw = await AsyncStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+export async function saveSettings(settings: Settings): Promise<void> {
+  await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// ─── Day data ─────────────────────────────────────────────────────────────────
+
 const PREFIX = 'daily-log:day:';
 
 export function toDateKey(date: Date): string {
