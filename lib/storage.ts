@@ -107,3 +107,47 @@ export async function getDay(dateKey: string): Promise<DayData> {
 export async function saveDay(dateKey: string, data: DayData): Promise<void> {
   await AsyncStorage.setItem(PREFIX + dateKey, JSON.stringify(data));
 }
+
+// ─── Range loader ─────────────────────────────────────────────────────────────
+
+export interface DayEntry {
+  dateKey: string;
+  data: DayData;
+}
+
+export async function getRecentDays(n: number): Promise<DayEntry[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dateKeys: string[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dateKeys.push(toDateKey(d));
+  }
+
+  const storageKeys = dateKeys.map((k) => PREFIX + k);
+
+  try {
+    const pairs = await AsyncStorage.multiGet(storageKeys);
+    return pairs.map(([, raw], i) => {
+      const dateKey = dateKeys[i];
+      if (!raw) return { dateKey, data: { ...DEFAULT_DAY } };
+      try {
+        const parsed = JSON.parse(raw) as Partial<DayData>;
+        if (parsed.meals) {
+          parsed.meals = parsed.meals.map((m, mi) => ({
+            ...DEFAULT_MEAL,
+            ...(m as object),
+            id: (m as Meal).id || `${dateKey}-${mi}`,
+          }));
+        }
+        return { dateKey, data: { ...DEFAULT_DAY, ...parsed } };
+      } catch {
+        return { dateKey, data: { ...DEFAULT_DAY } };
+      }
+    });
+  } catch {
+    return dateKeys.map((dateKey) => ({ dateKey, data: { ...DEFAULT_DAY } }));
+  }
+}
