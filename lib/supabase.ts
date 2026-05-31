@@ -13,12 +13,25 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// During Expo Router's SSR pre-pass (Node.js, "output":"static"), window is undefined.
+// AsyncStorage's web implementation accesses window.localStorage synchronously inside
+// Promise constructors, crashing the render before any component mounts.
+// The no-op adapter lets createClient initialise safely in that context; on device and
+// in the real browser the real AsyncStorage is used so sessions persist normally.
+const authStorage =
+  typeof window === 'undefined'
+    ? {
+        getItem: (_key: string) => Promise.resolve(null),
+        setItem: (_key: string, _value: string) => Promise.resolve(),
+        removeItem: (_key: string) => Promise.resolve(),
+      }
+    : AsyncStorage;
+
 export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '', {
   auth: {
-    storage: AsyncStorage,
+    storage: authStorage,
     persistSession: true,
     autoRefreshToken: true,
-    // Same behaviour on web and native; we use OTP, not magic-link URL detection.
     detectSessionInUrl: false,
   },
 });
