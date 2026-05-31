@@ -1,9 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface Meal {
+  id: string;
   text: string;
-  time?: string;
+  protein: boolean;
+  ironRich: boolean;
+  omega3: boolean;
+  vegFruit: boolean;
 }
+
+export const DEFAULT_MEAL: Meal = {
+  id: '',
+  text: '',
+  protein: false,
+  ironRich: false,
+  omega3: false,
+  vegFruit: false,
+};
 
 export interface DayData {
   sleep: string;
@@ -46,7 +59,16 @@ export async function getDay(dateKey: string): Promise<DayData> {
   try {
     const raw = await AsyncStorage.getItem(PREFIX + dateKey);
     if (!raw) return { ...DEFAULT_DAY };
-    return { ...DEFAULT_DAY, ...(JSON.parse(raw) as Partial<DayData>) };
+    const parsed = JSON.parse(raw) as Partial<DayData>;
+    // Forward-compat: ensure every meal has the full shape (handles saves from older builds)
+    if (parsed.meals) {
+      parsed.meals = parsed.meals.map((m, i) => ({
+        ...DEFAULT_MEAL,
+        ...(m as object),
+        id: (m as Meal).id || `${dateKey}-${i}`,
+      }));
+    }
+    return { ...DEFAULT_DAY, ...parsed };
   } catch {
     return { ...DEFAULT_DAY };
   }
