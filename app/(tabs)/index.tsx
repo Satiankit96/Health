@@ -1,14 +1,28 @@
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Card } from '@/components/Card';
+import { Colors, Spacing } from '@/constants/theme';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+const LOG_SECTIONS = [
+  'Sleep',
+  'Movement',
+  'Nourishment',
+  'Hydration',
+  'Weight',
+  'Hair Care',
+  'Energy & Notes',
+];
 
-export default function TabOneScreen() {
+export default function TodayScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {LOG_SECTIONS.map((section) => (
+          <Card key={section} title={section} />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -16,16 +30,10 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: Colors.bg,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+  content: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xxl,
   },
 });
