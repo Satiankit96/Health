@@ -31,7 +31,18 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+.env
+.env.*
+!.env.example
+
+# local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# personal data exports
+*.backup.json
+/exports
 
 # typescript
 *.tsbuildinfo
