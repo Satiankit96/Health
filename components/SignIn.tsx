@@ -44,8 +44,8 @@ export function SignIn() {
   async function verify() {
     setError(null);
     const codeTrimmed = code.trim();
-    if (codeTrimmed.length < 6) {
-      setError('Enter the 6-digit code from your email.');
+    if (codeTrimmed.length < 8) {
+      setError('Enter the 8-digit code from your email.');
       return;
     }
     setBusy(true);
@@ -80,7 +80,7 @@ export function SignIn() {
           <>
             <Text style={styles.heading}>Sign in</Text>
             <Text style={styles.sub}>
-              We'll email you a 6-digit code — no password to remember.
+              We'll email you an 8-digit code — no password to remember.
             </Text>
 
             <TextInput
@@ -116,17 +116,17 @@ export function SignIn() {
           <>
             <Text style={styles.heading}>Enter code</Text>
             <Text style={styles.sub}>
-              We sent a 6-digit code to {emailTrimmed}.
+              We sent an 8-digit code to {emailTrimmed}.
             </Text>
 
             <TextInput
               style={[styles.input, styles.codeInput]}
               value={code}
               onChangeText={(t) => setCode(t.replace(/[^0-9]/g, ''))}
-              placeholder="123456"
+              placeholder="12345678"
               placeholderTextColor={Colors.line}
               keyboardType="number-pad"
-              maxLength={6}
+              maxLength={8}
               autoFocus
               editable={!busy}
               returnKeyType="go"
