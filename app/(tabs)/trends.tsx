@@ -285,11 +285,8 @@ function DeficitWeightChart({
   const drawW = chartWidth - L_LEFT - L_RIGHT;
   const toX = makeToX(days, L_LEFT, drawW);
 
-  // Left (deficit) domain MUST include 0 so the dashed zero line is meaningful.
-  const dMin = Math.min(0, ...defVals);
-  const dMax = Math.max(0, ...defVals);
-  const dPad = Math.max(dMax - dMin, 1) * 0.15;
-  const toYLeft = makeToY(dMin - dPad, dMax + dPad, L_TOP, L_USABLE_H);
+  // Left (deficit) domain: fixed -1000–2000 so the axis is always comparable.
+  const toYLeft = makeToY(-1000, 2000, L_TOP, L_USABLE_H);
   const zeroY = toYLeft(0);
 
   // Right (weight) domain — its own min/max, in lb.
@@ -323,17 +320,13 @@ function DeficitWeightChart({
           0
         </SvgText>
 
-        {/* Left axis labels (deficit kcal) */}
-        {defVals.length > 0 && (
-          <>
-            <SvgText x={1} y={L_TOP + 5} fontSize={9} fill={Colors.plum}>
-              {Math.round(dMax)}
-            </SvgText>
-            <SvgText x={1} y={L_SVG_H - L_BOT + 4} fontSize={9} fill={Colors.plum}>
-              {Math.round(dMin)}
-            </SvgText>
-          </>
-        )}
+        {/* Left axis labels (deficit kcal) — fixed scale */}
+        <SvgText x={1} y={L_TOP + 5} fontSize={9} fill={Colors.plum}>
+          2000
+        </SvgText>
+        <SvgText x={1} y={L_SVG_H - L_BOT + 4} fontSize={9} fill={Colors.plum}>
+          -1000
+        </SvgText>
 
         {/* Right axis labels (weight lb) */}
         {avgVals.length > 0 && (
