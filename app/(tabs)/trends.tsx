@@ -8,6 +8,7 @@ import {
   DEFAULT_SETTINGS,
   getDaysBetween,
   getSettings,
+  hasData,
 } from '@/lib/storage';
 import { Colors, Spacing } from '@/constants/theme';
 import { burnedFor, deficitFor } from '@/lib/calories';
@@ -238,7 +239,7 @@ function CaloriesChart({
   }));
   const burned: SeriesPoint[] = days.map((d) => ({
     dateKey: d.dateKey,
-    value: burnedFor(d.data, passiveCalories),
+    value: hasData(d.data) ? burnedFor(d.data, passiveCalories) : null,
   }));
   const deficit: SeriesPoint[] = days.map((d) => ({
     dateKey: d.dateKey,

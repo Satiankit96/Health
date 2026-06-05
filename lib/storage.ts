@@ -140,6 +140,27 @@ async function writeLocalSettings(settings: Settings): Promise<void> {
   }
 }
 
+// ─── Day presence check ────────────────────────────────────────────────────────
+// True if any field was ever touched (differs from the all-zero DEFAULT_DAY).
+export function hasData(data: DayData): boolean {
+  return (
+    data.sleep !== '' ||
+    data.moveMin !== '' ||
+    data.moveNote !== '' ||
+    data.notes !== '' ||
+    data.weight !== '' ||
+    data.calories !== null ||
+    data.exerciseBurned !== null ||
+    data.water > 0 ||
+    data.mealQuality > 0 ||
+    data.energy > 0 ||
+    data.sugarFree ||
+    data.focusHeld ||
+    data.shampoo ||
+    data.microneedle
+  );
+}
+
 // ─── Day data ─────────────────────────────────────────────────────────────────
 
 export async function getDay(dateKey: string): Promise<DayData> {
