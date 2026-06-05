@@ -1,8 +1,10 @@
-import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SymbolView } from 'expo-symbols';
 import Svg, { Circle, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useNavigation } from 'expo-router';
+import { supabase } from '@/lib/supabase';
 import {
   type DayData,
   type DayEntry,
@@ -554,12 +556,28 @@ const RANGE_OPTIONS = [
 type RangeValue = (typeof RANGE_OPTIONS)[number]['value'];
 
 export default function TrendsScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const chartWidth = screenWidth - 2 * Spacing.md;
   const [days, setDays] = useState<DayEntry[]>([]);
   const [passiveCalories, setPassiveCalories] = useState(DEFAULT_SETTINGS.passiveCalories);
   const [range, setRange] = useState<RangeValue>(31);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const reload = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const tk = todayKey();
+      const rangeStart = shiftDate(tk, -(range - 1));
+      const startKey = rangeStart < TRACKING_START ? TRACKING_START : rangeStart;
+      const [d, s] = await Promise.all([getDaysBetween(startKey, tk), getSettings()]);
+      setDays(d);
+      setPassiveCalories(s.passiveCalories);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [range]);
 
   // Reload on focus and whenever the range selector changes.
   useFocusEffect(
@@ -573,17 +591,51 @@ export default function TrendsScreen() {
         setDays(d);
         setPassiveCalories(s.passiveCalories);
       });
-      return () => {
-        active = false;
-      };
+      return () => { active = false; };
     }, [range])
   );
+
+  // Header: refresh button (left) + sign-out (right), re-registered when loading state changes.
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Pressable
+            onPress={reload}
+            disabled={refreshing}
+            hitSlop={8}
+            style={{ marginRight: 12, opacity: refreshing ? 0.4 : 1 }}
+          >
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#6f6357" />
+            ) : (
+              <SymbolView
+                name={{ ios: 'arrow.clockwise', android: 'refresh', web: 'refresh' } as any}
+                tintColor="#2e2823"
+                size={20}
+              />
+            )}
+          </Pressable>
+          <Pressable
+            onPress={() => supabase.auth.signOut()}
+            hitSlop={8}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 14, color: '#6f6357' }}>
+              Sign out
+            </Text>
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [navigation, reload, refreshing]);
 
   return (
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={[styles.content, { paddingBottom: Spacing.xxl + insets.bottom }]}
       showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} tintColor={Colors.terra} />}
     >
       {/* Range selector */}
       <View style={styles.rangeRow}>

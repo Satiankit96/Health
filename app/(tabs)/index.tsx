@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
+import { useFocusEffect, useNavigation } from 'expo-router';
 import { DateBar } from '@/components/DateBar';
 import { StreakTile } from '@/components/StreakTile';
 import { EnergyNotesCard } from '@/components/cards/EnergyNotesCard';
@@ -32,18 +33,57 @@ function addDays(date: Date, n: number): Date {
 }
 
 export default function TodayScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [dayData, setDayData] = useState<DayData>({ ...DEFAULT_DAY });
   const [settings, setSettings] = useState<Settings>({ ...DEFAULT_SETTINGS });
   const [savedVisible, setSavedVisible] = useState(false);
   const [saveStatus, setSaveStatus] = useState<{ message: string; isError: boolean } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const latestData = useRef<DayData>({ ...DEFAULT_DAY });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDateKey = useRef<string | null>(null);
+
+  const reload = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const dateKey = toDateKey(selectedDate);
+      const [data, s] = await Promise.all([getDay(dateKey), getSettings()]);
+      setDayData(data);
+      latestData.current = data;
+      setSettings(s);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [selectedDate]);
+
+  // Register the header refresh button; re-runs whenever loading state changes.
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={reload}
+          disabled={refreshing}
+          hitSlop={8}
+          style={{ marginRight: 16, opacity: refreshing ? 0.4 : 1 }}
+        >
+          {refreshing ? (
+            <ActivityIndicator size="small" color="#6f6357" />
+          ) : (
+            <SymbolView
+              name={{ ios: 'arrow.clockwise', android: 'refresh', web: 'refresh' } as any}
+              tintColor="#2e2823"
+              size={20}
+            />
+          )}
+        </Pressable>
+      ),
+    });
+  }, [navigation, reload, refreshing]);
 
   // Load settings once on mount
   useEffect(() => {
@@ -194,6 +234,7 @@ export default function TodayScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: Spacing.xxl + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} tintColor={Colors.terra} />}
       >
         <SleepCard
           value={dayData.sleep}

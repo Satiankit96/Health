@@ -1,29 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
-import { Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { supabase } from '@/lib/supabase';
-import { Colors, Spacing } from '@/constants/theme';
-
-function SignOutButton() {
-  return (
-    <Pressable
-      onPress={() => supabase.auth.signOut()}
-      hitSlop={8}
-      style={{ marginRight: Spacing.md }}
-    >
-      <Text
-        style={{
-          fontFamily: 'DMSans_500Medium',
-          fontSize: 14,
-          color: Colors.inkSoft,
-        }}
-      >
-        Sign out
-      </Text>
-    </Pressable>
-  );
-}
+import { Colors } from '@/constants/theme';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -72,7 +50,6 @@ export default function TabLayout() {
         name="trends"
         options={{
           title: 'Trends',
-          headerRight: () => <SignOutButton />,
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'chart.bar', android: 'bar_chart', web: 'bar_chart' }}
