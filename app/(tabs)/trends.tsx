@@ -11,6 +11,7 @@ import {
 } from '@/lib/storage';
 import { Colors, Spacing } from '@/constants/theme';
 import { burnedFor, deficitFor } from '@/lib/calories';
+import { MonthCalendar } from '@/components/MonthCalendar';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -591,6 +592,11 @@ export default function TrendsScreen() {
         fmtY={(n) => n.toFixed(1)}
         emptyMsg="Log a few nights and your sleep trend will appear here."
       />
+
+      <View style={styles.divider} />
+
+      <Text style={styles.section}>Month</Text>
+      <MonthCalendar passiveCalories={passiveCalories} width={chartWidth} />
 
       <View style={styles.divider} />
 
