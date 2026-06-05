@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { DateBar } from '@/components/DateBar';
 import { StreakTile } from '@/components/StreakTile';
 import { EnergyNotesCard } from '@/components/cards/EnergyNotesCard';
@@ -37,18 +38,24 @@ export default function TodayScreen() {
   const latestData = useRef<DayData>({ ...DEFAULT_DAY });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDateKey = useRef<string | null>(null);
 
   // Load settings once on mount
   useEffect(() => {
     getSettings().then(setSettings);
   }, []);
 
-  // Load day data whenever the selected date changes; cancel any pending save first
+  const flushSave = useCallback(() => {
+    if (!saveTimer.current || !pendingDateKey.current) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    saveDay(pendingDateKey.current, latestData.current);
+    pendingDateKey.current = null;
+  }, []);
+
+  // Load day data whenever the selected date changes; flush any pending save first
   useEffect(() => {
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = null;
-    }
+    flushSave();
     let active = true;
     getDay(toDateKey(selectedDate)).then((data) => {
       if (active) {
@@ -61,13 +68,18 @@ export default function TodayScreen() {
     };
   }, [selectedDate]);
 
-  // Cleanup timers on unmount
+  // Flush + cleanup on unmount
   useEffect(() => {
     return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+      flushSave();
       if (savedTimer.current) clearTimeout(savedTimer.current);
     };
   }, []);
+
+  // Flush when leaving the Today tab so Trends always reads committed data
+  useFocusEffect(
+    useCallback(() => () => flushSave(), [flushSave])
+  );
 
   function updateDay(patch: Partial<DayData>) {
     const dateKey = toDateKey(selectedDate);
@@ -77,8 +89,11 @@ export default function TodayScreen() {
       return next;
     });
     if (saveTimer.current) clearTimeout(saveTimer.current);
+    pendingDateKey.current = dateKey;
     saveTimer.current = setTimeout(() => {
       saveDay(dateKey, latestData.current);
+      saveTimer.current = null;
+      pendingDateKey.current = null;
       setSavedVisible(true);
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSavedVisible(false), 1500);
