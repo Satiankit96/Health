@@ -51,9 +51,9 @@ function burnedFor(data: DayData, passiveCalories: number): number {
   return passiveCalories + (data.exerciseBurned ?? 0);
 }
 
-// Deficit = consumed − burned (may be negative = surplus). Null when calories unlogged.
+// Deficit = burned − consumed (positive = ate under burn; negative = surplus). Null when calories unlogged.
 function deficitFor(data: DayData, passiveCalories: number): number | null {
-  return data.calories === null ? null : data.calories - burnedFor(data, passiveCalories);
+  return data.calories === null ? null : burnedFor(data, passiveCalories) - data.calories;
 }
 
 // ─── Reusable line renderer ─────────────────────────────────────────────────────
