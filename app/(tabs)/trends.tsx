@@ -229,6 +229,10 @@ function CaloriesChart({
     dateKey: d.dateKey,
     value: burnedFor(d.data, passiveCalories),
   }));
+  const deficit: SeriesPoint[] = days.map((d) => ({
+    dateKey: d.dateKey,
+    value: deficitFor(d.data, passiveCalories),
+  }));
 
   return (
     <View>
@@ -238,6 +242,7 @@ function CaloriesChart({
         series={[
           { points: consumed, color: Colors.terra },
           { points: burned, color: Colors.sage },
+          { points: deficit, color: Colors.plum },
         ]}
         fmtY={(n) => String(Math.round(n))}
         emptyMsg="Log a day's calories to see consumed vs burned."
@@ -246,6 +251,7 @@ function CaloriesChart({
         items={[
           { color: Colors.terra, label: 'Consumed' },
           { color: Colors.sage, label: 'Burned' },
+          { color: Colors.plum, label: 'Deficit' },
         ]}
       />
     </View>
