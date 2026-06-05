@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import { useFocusEffect } from 'expo-router';
 import {
@@ -553,6 +554,7 @@ const RANGE_OPTIONS = [
 type RangeValue = (typeof RANGE_OPTIONS)[number]['value'];
 
 export default function TrendsScreen() {
+  const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const chartWidth = screenWidth - 2 * Spacing.md;
   const [days, setDays] = useState<DayEntry[]>([]);
@@ -580,7 +582,7 @@ export default function TrendsScreen() {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: Spacing.xxl + insets.bottom }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Range selector */}

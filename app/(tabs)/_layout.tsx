@@ -1,6 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 import { Pressable, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Colors, Spacing } from '@/constants/theme';
 
@@ -25,6 +26,7 @@ function SignOutButton() {
 }
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -34,6 +36,8 @@ export default function TabLayout() {
           backgroundColor: Colors.card,
           borderTopColor: Colors.line,
           borderTopWidth: 1,
+          height: 49 + insets.bottom,
+          paddingBottom: insets.bottom,
         },
         tabBarLabelStyle: {
           fontFamily: 'DMSans_500Medium',

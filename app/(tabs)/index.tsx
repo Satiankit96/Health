@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { DateBar } from '@/components/DateBar';
 import { StreakTile } from '@/components/StreakTile';
@@ -30,6 +31,7 @@ function addDays(date: Date, n: number): Date {
 }
 
 export default function TodayScreen() {
+  const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [dayData, setDayData] = useState<DayData>({ ...DEFAULT_DAY });
   const [settings, setSettings] = useState<Settings>({ ...DEFAULT_SETTINGS });
@@ -136,7 +138,7 @@ export default function TodayScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: Spacing.xxl + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
