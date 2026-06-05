@@ -4,13 +4,14 @@ import { toDateKey } from '@/lib/storage';
 import { Colors, Spacing } from '@/constants/theme';
 
 // Day count is inclusive: start date = day 1, yesterday = day 2, etc.
+// Returns 0 when startDate is tomorrow (i.e. just reset — streak resumes from tomorrow).
 function computeDays(startDateKey: string): number {
   const [y, m, d] = startDateKey.split('-').map(Number);
   const start = new Date(y, m - 1, d);
   const todayMidnight = new Date();
   todayMidnight.setHours(0, 0, 0, 0);
   const diffMs = todayMidnight.getTime() - start.getTime();
-  return Math.max(1, Math.floor(diffMs / 86400000) + 1);
+  return Math.max(0, Math.floor(diffMs / 86400000) + 1);
 }
 
 // Given a desired count, derive the start date that produces it
@@ -48,7 +49,11 @@ export function StreakTile({ label, accent, startDate, onChange }: StreakTilePro
   }
 
   function handleReset() {
-    onChange(toDateKey(new Date()));
+    // Set start to tomorrow so count = 0 right now; increments to 1 from tomorrow.
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    onChange(toDateKey(tomorrow));
   }
 
   function handleEditPress() {
