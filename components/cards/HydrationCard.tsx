@@ -9,15 +9,19 @@ const TOTAL_DROPS = Math.round(GOAL / STEP); // 10
 interface HydrationCardProps {
   water: number;
   sugarFree: boolean;
+  focusHeld: boolean;
   onWaterChange: (v: number) => void;
   onSugarFreeChange: (v: boolean) => void;
+  onFocusHeldChange: (v: boolean) => void;
 }
 
 export function HydrationCard({
   water,
   sugarFree,
+  focusHeld,
   onWaterChange,
   onSugarFreeChange,
+  onFocusHeldChange,
 }: HydrationCardProps) {
   const filledDrops = Math.min(Math.round(water / STEP), TOTAL_DROPS);
 
@@ -72,15 +76,25 @@ export function HydrationCard({
         </Pressable>
       </View>
 
-      {/* No-sugar toggle */}
-      <Pressable
-        onPress={() => onSugarFreeChange(!sugarFree)}
-        style={[styles.toggle, sugarFree && styles.toggleActive]}
-      >
-        <Text style={[styles.toggleText, sugarFree && styles.toggleTextActive]}>
-          {sugarFree ? '✓  No added sugar today' : 'No added sugar today'}
-        </Text>
-      </Pressable>
+      {/* Toggles row */}
+      <View style={styles.toggleRow}>
+        <Pressable
+          onPress={() => onSugarFreeChange(!sugarFree)}
+          style={[styles.toggle, sugarFree && styles.toggleActive]}
+        >
+          <Text style={[styles.toggleText, sugarFree && styles.toggleTextActive]}>
+            {sugarFree ? '✓  No added sugar today' : 'No added sugar today'}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onFocusHeldChange(!focusHeld)}
+          style={[styles.toggle, focusHeld && styles.toggleFocusActive]}
+        >
+          <Text style={[styles.toggleText, focusHeld && styles.toggleTextActive]}>
+            {focusHeld ? '✓  Focus' : 'Focus'}
+          </Text>
+        </Pressable>
+      </View>
     </Card>
   );
 }
@@ -139,6 +153,11 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     minWidth: 84,
   },
+  toggleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
   toggle: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.md,
@@ -150,6 +169,10 @@ const styles = StyleSheet.create({
   toggleActive: {
     backgroundColor: Colors.terra,
     borderColor: Colors.terra,
+  },
+  toggleFocusActive: {
+    backgroundColor: Colors.plum,
+    borderColor: Colors.plum,
   },
   toggleText: {
     fontFamily: 'DMSans_400Regular',

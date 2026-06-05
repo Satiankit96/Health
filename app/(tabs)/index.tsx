@@ -132,8 +132,12 @@ export default function TodayScreen() {
         <MovementCard
           moveMin={dayData.moveMin}
           moveNote={dayData.moveNote}
+          exerciseBurned={dayData.exerciseBurned}
+          passiveCalories={settings.passiveCalories}
           onMinChange={(moveMin) => updateDay({ moveMin })}
           onNoteChange={(moveNote) => updateDay({ moveNote })}
+          onExerciseBurnedChange={(exerciseBurned) => updateDay({ exerciseBurned })}
+          onPassiveCaloriesChange={(passiveCalories) => updateSettings({ passiveCalories })}
         />
         <NourishmentCard
           calories={dayData.calories}
@@ -144,8 +148,10 @@ export default function TodayScreen() {
         <HydrationCard
           water={dayData.water}
           sugarFree={dayData.sugarFree}
+          focusHeld={dayData.focusHeld}
           onWaterChange={(water) => updateDay({ water })}
           onSugarFreeChange={(sugarFree) => updateDay({ sugarFree })}
+          onFocusHeldChange={(focusHeld) => updateDay({ focusHeld })}
         />
         <WeightCard
           value={dayData.weight}
