@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { DateBar } from '@/components/DateBar';
@@ -13,6 +13,7 @@ import { SleepCard } from '@/components/cards/SleepCard';
 import { WeightCard } from '@/components/cards/WeightCard';
 import {
   type DayData,
+  type SaveDayResult,
   type Settings,
   DEFAULT_DAY,
   DEFAULT_SETTINGS,
@@ -36,10 +37,12 @@ export default function TodayScreen() {
   const [dayData, setDayData] = useState<DayData>({ ...DEFAULT_DAY });
   const [settings, setSettings] = useState<Settings>({ ...DEFAULT_SETTINGS });
   const [savedVisible, setSavedVisible] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{ message: string; isError: boolean } | null>(null);
 
   const latestData = useRef<DayData>({ ...DEFAULT_DAY });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDateKey = useRef<string | null>(null);
 
   // Load settings once on mount
@@ -75,6 +78,7 @@ export default function TodayScreen() {
     return () => {
       flushSave();
       if (savedTimer.current) clearTimeout(savedTimer.current);
+      if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
     };
   }, []);
 
@@ -100,6 +104,43 @@ export default function TodayScreen() {
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSavedVisible(false), 1500);
     }, 500);
+  }
+
+  async function handleSave() {
+    // Cancel any pending debounce without double-firing it.
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+      pendingDateKey.current = null;
+    }
+    if (savedTimer.current) {
+      clearTimeout(savedTimer.current);
+      savedTimer.current = null;
+      setSavedVisible(false);
+    }
+
+    const dateKey = toDateKey(selectedDate);
+    const result: SaveDayResult = await saveDay(dateKey, latestData.current);
+
+    let message: string;
+    let isError: boolean;
+    if (result.cloud === 'ok') {
+      message = 'Saved & synced';
+      isError = false;
+    } else if (result.cloud === 'skipped-signed-out') {
+      message = 'Saved on device — not signed in';
+      isError = false;
+    } else {
+      message = `Sync failed: ${result.error ?? 'unknown error'}`;
+      isError = true;
+    }
+
+    setSaveStatus({ message, isError });
+    if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
+    saveStatusTimer.current = setTimeout(
+      () => setSaveStatus(null),
+      isError ? 5000 : 2500
+    );
   }
 
   // Settings writes are discrete actions (no debounce needed)
@@ -136,6 +177,18 @@ export default function TodayScreen() {
         onToday={() => setSelectedDate(new Date())}
         saved={savedVisible}
       />
+
+      <View style={styles.saveRow}>
+        <Text
+          style={[styles.saveStatusText, saveStatus?.isError ? styles.saveStatusError : styles.saveStatusOk]}
+          numberOfLines={2}
+        >
+          {saveStatus?.message ?? ''}
+        </Text>
+        <Pressable onPress={handleSave} style={styles.saveButton}>
+          <Text style={styles.saveButtonText}>Save</Text>
+        </Pressable>
+      </View>
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: Spacing.xxl + insets.bottom }]}
@@ -209,5 +262,38 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.md,
     paddingBottom: Spacing.xxl,
+  },
+  saveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.line,
+    backgroundColor: Colors.bg,
+    gap: Spacing.sm,
+  },
+  saveStatusText: {
+    flex: 1,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  saveStatusOk: {
+    color: Colors.sage,
+  },
+  saveStatusError: {
+    color: Colors.terra,
+  },
+  saveButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 100,
+    backgroundColor: Colors.terra,
+  },
+  saveButtonText: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 13,
+    color: '#fff',
   },
 });

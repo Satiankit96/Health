@@ -187,15 +187,27 @@ export async function getDay(dateKey: string): Promise<DayData> {
   }
 }
 
-export async function saveDay(dateKey: string, data: DayData): Promise<void> {
-  // Cache first so the UI is durable even if the network call fails.
-  await writeLocalDay(dateKey, data);
+export interface SaveDayResult {
+  local: boolean;
+  cloud: 'ok' | 'skipped-signed-out' | 'error';
+  error?: string;
+}
+
+export async function saveDay(dateKey: string, data: DayData): Promise<SaveDayResult> {
+  // Local cache first — UI is durable even if the network call fails.
+  let local = false;
+  try {
+    await AsyncStorage.setItem(PREFIX + dateKey, JSON.stringify(data));
+    local = true;
+  } catch {
+    // Very unusual (device out of storage); carry on to attempt cloud write.
+  }
 
   const userId = await getUserId();
-  if (!userId) return; // local-only when signed out
+  if (!userId) return { local, cloud: 'skipped-signed-out' };
 
   try {
-    await supabase.from('daily_logs').upsert(
+    const { error } = await supabase.from('daily_logs').upsert(
       {
         user_id: userId,
         date: dateKey,
@@ -204,8 +216,10 @@ export async function saveDay(dateKey: string, data: DayData): Promise<void> {
       },
       { onConflict: 'user_id,date' }
     );
-  } catch {
-    // Swallow — cache already holds the write; retry/queue is Phase 5.
+    if (error) throw error;
+    return { local, cloud: 'ok' };
+  } catch (e) {
+    return { local, cloud: 'error', error: e instanceof Error ? e.message : String(e) };
   }
 }
 
