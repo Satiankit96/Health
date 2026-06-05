@@ -72,7 +72,10 @@ Runs on a physical iPhone through **Expo Go** — no native build step. `npm run
 
 - **Nourishment is logged as daily totals, not a meal list.** Two fields per day:
   `calories` (integer kcal, nullable) and `mealQuality` (1–5 dot selector). No
-  per-meal breakdown, no macro targets, no deficit math.
+  per-meal breakdown, no macro targets.
+- **Deficit (consumed − burned) is shown as an observation only** — never a target,
+  never a goal to maximise, and it does **not** feed the daily score. The trend-first
+  weight framing and the "eat more if dropping too fast" guardrail still stand.
 - **Weight is trend-first.** The 7-day trailing average (the gold line) is the emphasis,
   not any single morning's number. Surface pace as ~lb/week; a too-fast drop should
   prompt eating *more*, not less.
