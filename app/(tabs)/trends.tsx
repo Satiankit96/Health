@@ -287,15 +287,12 @@ function DeficitWeightChart({
   }));
   const defVals = defPts.map((p) => p.value).filter((v): v is number => v !== null);
 
-  // Weight 7-day trailing average.
+  // Raw daily weight points (one dot per logged weigh-in).
   const wPts = weightPoints(days);
-  const avgPts: SeriesPoint[] = wPts.map((p, i) => ({
-    dateKey: p.dateKey,
-    value: trailingAvg(wPts, i),
-  }));
-  const avgVals = avgPts.map((p) => p.value as number);
+  const rawWeightPts: SeriesPoint[] = wPts.map((p) => ({ dateKey: p.dateKey, value: p.weight }));
+  const rawWeightVals = wPts.map((p) => p.weight);
 
-  if (days.length === 0 || (defVals.length === 0 && avgVals.length === 0)) {
+  if (days.length === 0 || (defVals.length === 0 && rawWeightVals.length === 0)) {
     return <Text style={styles.emptyMsg}>Log calories and weight to compare them here.</Text>;
   }
 
@@ -306,18 +303,18 @@ function DeficitWeightChart({
   const toYLeft = makeToY(-1000, 2000, L_TOP, L_USABLE_H);
   const zeroY = toYLeft(0);
 
-  // Right (weight) domain — its own min/max, in lb.
-  const wMin = avgVals.length ? Math.min(...avgVals) : 0;
-  const wMax = avgVals.length ? Math.max(...avgVals) : 1;
+  // Right (weight) domain — raw daily min/max, in lb.
+  const wMin = rawWeightVals.length ? Math.min(...rawWeightVals) : 0;
+  const wMax = rawWeightVals.length ? Math.max(...rawWeightVals) : 1;
   const wPad = Math.max(wMax - wMin, 1) * 0.2;
   const toYRight = makeToY(wMin - wPad, wMax + wPad, L_TOP, L_USABLE_H);
 
-  // Pace caption (reused weight-trend guardrail) over the weight data span.
+  // Fast-drop guardrail: pace computed over the raw daily weight span.
   const wSpan =
     wPts.length >= 2
       ? Math.max(1, daysBetween(wPts[0].dateKey, wPts[wPts.length - 1].dateKey))
       : 0;
-  const paceVal = paceFromAvg(avgVals, wSpan);
+  const paceVal = paceFromAvg(rawWeightVals, wSpan);
   const showGuardrail = paceVal !== null && paceVal < -1.5;
 
   return (
@@ -346,7 +343,7 @@ function DeficitWeightChart({
         </SvgText>
 
         {/* Right axis labels (weight lb) */}
-        {avgVals.length > 0 && (
+        {rawWeightVals.length > 0 && (
           <>
             <SvgText
               x={chartWidth - 1}
@@ -370,13 +367,13 @@ function DeficitWeightChart({
         )}
 
         <LineSeries points={defPts} toX={toX} toY={toYLeft} color={Colors.plum} />
-        <LineSeries points={avgPts} toX={toX} toY={toYRight} color={Colors.gold} />
+        <LineSeries points={rawWeightPts} toX={toX} toY={toYRight} color={Colors.gold} />
       </Svg>
 
       <Legend
         items={[
           { color: Colors.plum, label: 'Deficit (kcal)' },
-          { color: Colors.gold, label: 'Weight 7-day avg (lb)' },
+          { color: Colors.gold, label: 'Weight (lb)' },
         ]}
       />
       {showGuardrail && <Text style={styles.caption}>{FAST_DROP_CAPTION}</Text>}
