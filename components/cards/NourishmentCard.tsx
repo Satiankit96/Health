@@ -1,152 +1,100 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Card } from '@/components/Card';
-import { type Meal, DEFAULT_MEAL } from '@/lib/storage';
-import { Colors, Radius, Spacing } from '@/constants/theme';
-
-type TagKey = 'protein' | 'ironRich' | 'omega3' | 'vegFruit';
-
-const TAGS: Array<{ key: TagKey; label: string; color: string }> = [
-  { key: 'protein',  label: 'Protein',   color: Colors.terra },
-  { key: 'ironRich', label: 'Iron-rich',  color: Colors.plum },
-  { key: 'omega3',   label: 'Omega-3',   color: Colors.sage },
-  { key: 'vegFruit', label: 'Veg/fruit', color: Colors.gold },
-];
+import { Colors, Spacing } from '@/constants/theme';
 
 interface NourishmentCardProps {
-  meals: Meal[];
-  onChange: (meals: Meal[]) => void;
+  calories: number | null;
+  mealQuality: number;
+  onCaloriesChange: (v: number | null) => void;
+  onMealQualityChange: (v: number) => void;
 }
 
-export function NourishmentCard({ meals, onChange }: NourishmentCardProps) {
-  function addMeal() {
-    onChange([...meals, { ...DEFAULT_MEAL, id: Date.now().toString() }]);
-  }
-
-  function deleteMeal(id: string) {
-    onChange(meals.filter((m) => m.id !== id));
-  }
-
-  function updateMeal(id: string, patch: Partial<Meal>) {
-    onChange(meals.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+export function NourishmentCard({
+  calories,
+  mealQuality,
+  onCaloriesChange,
+  onMealQualityChange,
+}: NourishmentCardProps) {
+  function handleCaloriesChange(text: string) {
+    const digits = text.replace(/[^0-9]/g, '');
+    onCaloriesChange(digits === '' ? null : parseInt(digits, 10));
   }
 
   return (
     <Card title="Nourishment">
-      {meals.map((meal, idx) => (
-        <View
-          key={meal.id}
-          style={[styles.mealRow, idx > 0 && styles.mealDivider]}
-        >
-          {/* Dish name + delete */}
-          <View style={styles.mealTop}>
-            <TextInput
-              style={styles.mealInput}
-              value={meal.text}
-              onChangeText={(t) => updateMeal(meal.id, { text: t })}
-              placeholder="What did you eat?"
-              placeholderTextColor={Colors.line}
-              returnKeyType="done"
-            />
-            <Pressable onPress={() => deleteMeal(meal.id)} hitSlop={8}>
-              <Text style={styles.deleteBtn}>×</Text>
+      <View style={styles.calRow}>
+        <TextInput
+          style={styles.calInput}
+          value={calories !== null ? String(calories) : ''}
+          onChangeText={handleCaloriesChange}
+          keyboardType="number-pad"
+          placeholder="—"
+          placeholderTextColor={Colors.line}
+          maxLength={5}
+          selectTextOnFocus
+          returnKeyType="done"
+        />
+        <Text style={styles.unit}>kcal</Text>
+      </View>
+
+      <View style={styles.qualityRow}>
+        <Text style={styles.qualityLabel}>Meal quality</Text>
+        <View style={styles.dots}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Pressable
+              key={n}
+              onPress={() => onMealQualityChange(mealQuality === n ? 0 : n)}
+              hitSlop={6}
+            >
+              <View style={[styles.dot, n <= mealQuality && styles.dotFilled]} />
             </Pressable>
-          </View>
-
-          {/* Nutrition tags */}
-          <View style={styles.tags}>
-            {TAGS.map(({ key, label, color }) => {
-              const active = meal[key] as boolean;
-              return (
-                <Pressable
-                  key={key}
-                  onPress={() =>
-                    updateMeal(meal.id, { [key]: !active } as Partial<Meal>)
-                  }
-                  style={[
-                    styles.tag,
-                    active && { backgroundColor: color, borderColor: color },
-                  ]}
-                >
-                  <Text style={[styles.tagText, active && styles.tagTextActive]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          ))}
         </View>
-      ))}
-
-      <Pressable onPress={addMeal} style={styles.addBtn}>
-        <Text style={styles.addBtnText}>+ Add a meal</Text>
-      </Pressable>
+      </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  mealRow: {
-    paddingBottom: Spacing.sm,
-  },
-  mealDivider: {
-    borderTopWidth: 1,
-    borderTopColor: Colors.line,
-    paddingTop: Spacing.sm,
-  },
-  mealTop: {
+  calRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
-  mealInput: {
-    flex: 1,
+  calInput: {
+    fontFamily: 'Fraunces_400Regular',
+    fontSize: 32,
+    color: Colors.ink,
+    minWidth: 64,
+    padding: 0,
+  },
+  unit: {
     fontFamily: 'DMSans_400Regular',
     fontSize: 15,
-    color: Colors.ink,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.line,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: 0,
-  },
-  deleteBtn: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 22,
     color: Colors.inkSoft,
-    lineHeight: 26,
   },
-  tags: {
+  qualityRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  tag: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.line,
-  },
-  tagText: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 11,
-    color: Colors.inkSoft,
-    letterSpacing: 0.2,
-  },
-  tagTextActive: {
-    color: '#fff',
-  },
-  addBtn: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.line,
-    borderRadius: Radius.md,
+    gap: Spacing.md,
   },
-  addBtnText: {
-    fontFamily: 'DMSans_500Medium',
+  qualityLabel: {
+    fontFamily: 'DMSans_400Regular',
     fontSize: 14,
     color: Colors.inkSoft,
+  },
+  dots: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  dot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.line,
+  },
+  dotFilled: {
+    backgroundColor: Colors.terra,
   },
 });

@@ -136,8 +136,10 @@ export default function TodayScreen() {
           onNoteChange={(moveNote) => updateDay({ moveNote })}
         />
         <NourishmentCard
-          meals={dayData.meals}
-          onChange={(meals) => updateDay({ meals })}
+          calories={dayData.calories}
+          mealQuality={dayData.mealQuality}
+          onCaloriesChange={(calories) => updateDay({ calories })}
+          onMealQualityChange={(mealQuality) => updateDay({ mealQuality })}
         />
         <HydrationCard
           water={dayData.water}

@@ -70,9 +70,9 @@ Runs on a physical iPhone through **Expo Go** — no native build step. `npm run
 
 ## Design principles (keep these)
 
-- **This is a nourishment tracker, never a calorie counter.** No calorie fields,
-  targets, macros-as-budget, or deficit math anywhere — ever. Meals are logged
-  qualitatively (protein / iron-rich / omega-3 / veg-fruit tags).
+- **Nourishment is logged as daily totals, not a meal list.** Two fields per day:
+  `calories` (integer kcal, nullable) and `mealQuality` (1–5 dot selector). No
+  per-meal breakdown, no macro targets, no deficit math.
 - **Weight is trend-first.** The 7-day trailing average (the gold line) is the emphasis,
   not any single morning's number. Surface pace as ~lb/week; a too-fast drop should
   prompt eating *more*, not less.

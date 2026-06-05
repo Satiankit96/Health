@@ -1,29 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 
-export interface Meal {
-  id: string;
-  text: string;
-  protein: boolean;
-  ironRich: boolean;
-  omega3: boolean;
-  vegFruit: boolean;
-}
-
-export const DEFAULT_MEAL: Meal = {
-  id: '',
-  text: '',
-  protein: false,
-  ironRich: false,
-  omega3: false,
-  vegFruit: false,
-};
-
 export interface DayData {
   sleep: string;
   moveMin: string;
   moveNote: string;
-  meals: Meal[];
+  calories: number | null;
+  mealQuality: number;
   water: number;
   sugarFree: boolean;
   shampoo: boolean;
@@ -37,7 +20,8 @@ export const DEFAULT_DAY: DayData = {
   sleep: '',
   moveMin: '',
   moveNote: '',
-  meals: [],
+  calories: null,
+  mealQuality: 0,
   water: 0,
   sugarFree: false,
   shampoo: false,
@@ -74,21 +58,13 @@ export function toDateKey(date: Date): string {
 }
 
 // ─── Internal: shape normalisation ──────────────────────────────────────────────
-// Merge stored/remote data over defaults and backfill missing meal fields, so saves
-// from older builds (or partial remote rows) never break. (See AGENTS.md.)
-function normalizeDay(parsed: Partial<DayData>, dateKey: string): DayData {
-  let next: Partial<DayData> = parsed;
-  if (parsed.meals) {
-    next = {
-      ...parsed,
-      meals: parsed.meals.map((m, i) => ({
-        ...DEFAULT_MEAL,
-        ...(m as object),
-        id: (m as Meal).id || `${dateKey}-${i}`,
-      })),
-    };
-  }
-  return { ...DEFAULT_DAY, ...next };
+// Merge stored/remote data over defaults so saves from older builds never break.
+// The `meals` key is stripped here — it was removed in favour of calories/mealQuality;
+// old entries that still carry it must not crash on load.
+function normalizeDay(raw: Record<string, unknown>): DayData {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { meals: _meals, ...rest } = raw;
+  return { ...DEFAULT_DAY, ...(rest as Partial<DayData>) };
 }
 
 // ─── Internal: current user ─────────────────────────────────────────────────────
@@ -108,7 +84,7 @@ async function readLocalDay(dateKey: string): Promise<DayData> {
   try {
     const raw = await AsyncStorage.getItem(PREFIX + dateKey);
     if (!raw) return { ...DEFAULT_DAY };
-    return normalizeDay(JSON.parse(raw) as Partial<DayData>, dateKey);
+    return normalizeDay(JSON.parse(raw) as Record<string, unknown>);
   } catch {
     return { ...DEFAULT_DAY };
   }
@@ -130,7 +106,7 @@ async function readLocalRange(dateKeys: string[]): Promise<DayEntry[]> {
       const dateKey = dateKeys[i];
       if (!raw) return { dateKey, data: { ...DEFAULT_DAY } };
       try {
-        return { dateKey, data: normalizeDay(JSON.parse(raw) as Partial<DayData>, dateKey) };
+        return { dateKey, data: normalizeDay(JSON.parse(raw) as Record<string, unknown>) };
       } catch {
         return { dateKey, data: { ...DEFAULT_DAY } };
       }
@@ -176,7 +152,7 @@ export async function getDay(dateKey: string): Promise<DayData> {
     // No remote row yet → prefer local cache (may hold a local-only entry).
     if (!data) return readLocalDay(dateKey);
 
-    const day = normalizeDay((data.data ?? {}) as Partial<DayData>, dateKey);
+    const day = normalizeDay((data.data ?? {}) as Record<string, unknown>);
     await writeLocalDay(dateKey, day); // refresh cache
     return day;
   } catch {
@@ -284,7 +260,7 @@ export async function getRecentDays(n: number): Promise<DayEntry[]> {
     const byDate = new Map<string, DayData>();
     for (const row of data ?? []) {
       const dk = String(row.date);
-      byDate.set(dk, normalizeDay((row.data ?? {}) as Partial<DayData>, dk));
+      byDate.set(dk, normalizeDay((row.data ?? {}) as Record<string, unknown>));
     }
 
     // Start from local cache (preserves any local-only days), then overlay remote.
@@ -339,7 +315,7 @@ export async function migrateLocalToCloud(userId: string): Promise<void> {
           rows.push({
             user_id: userId,
             date: dateKey,
-            data: normalizeDay(JSON.parse(raw) as Partial<DayData>, dateKey),
+            data: normalizeDay(JSON.parse(raw) as Record<string, unknown>),
             updated_at: now,
           });
         } catch {
