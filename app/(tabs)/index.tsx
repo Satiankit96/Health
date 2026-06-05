@@ -158,6 +158,7 @@ export default function TodayScreen() {
           onChange={(weight) => updateDay({ weight })}
         />
         <HairCareCard
+          dateKey={toDateKey(selectedDate)}
           shampoo={dayData.shampoo}
           microneedle={dayData.microneedle}
           onShampooChange={(shampoo) => updateDay({ shampoo })}

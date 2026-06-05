@@ -1,15 +1,46 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { isMicroneedleDay, isShampooDay } from '@/constants/schedule';
 
 interface HairCareCardProps {
+  dateKey: string;
   shampoo: boolean;
   microneedle: boolean;
   onShampooChange: (v: boolean) => void;
   onMicroneedleChange: (v: boolean) => void;
 }
 
+function HairCareToggle({
+  label,
+  done,
+  due,
+  onPress,
+  style,
+}: {
+  label: string;
+  done: boolean;
+  due: boolean;
+  onPress: () => void;
+  style?: object;
+}) {
+  return (
+    <View style={style}>
+      <Pressable
+        onPress={onPress}
+        style={[styles.toggle, due && !done && styles.toggleDue, done && styles.toggleActive]}
+      >
+        <Text style={[styles.toggleText, done && styles.toggleTextActive]}>
+          {done ? `✓  ${label}` : label}
+        </Text>
+      </Pressable>
+      {due && !done && <Text style={styles.dueLabel}>Due today</Text>}
+    </View>
+  );
+}
+
 export function HairCareCard({
+  dateKey,
   shampoo,
   microneedle,
   onShampooChange,
@@ -17,22 +48,19 @@ export function HairCareCard({
 }: HairCareCardProps) {
   return (
     <Card title="Hair Care">
-      <Pressable
+      <HairCareToggle
+        label="Ketoconazole shampoo"
+        done={shampoo}
+        due={isShampooDay(dateKey)}
         onPress={() => onShampooChange(!shampoo)}
-        style={[styles.toggle, shampoo && styles.toggleActive]}
-      >
-        <Text style={[styles.toggleText, shampoo && styles.toggleTextActive]}>
-          {shampoo ? '✓  Ketoconazole shampoo' : 'Ketoconazole shampoo'}
-        </Text>
-      </Pressable>
-      <Pressable
+      />
+      <HairCareToggle
+        label="Microneedling"
+        done={microneedle}
+        due={isMicroneedleDay(dateKey)}
         onPress={() => onMicroneedleChange(!microneedle)}
-        style={[styles.toggle, styles.toggleGap, microneedle && styles.toggleActive]}
-      >
-        <Text style={[styles.toggleText, microneedle && styles.toggleTextActive]}>
-          {microneedle ? '✓  Microneedling' : 'Microneedling'}
-        </Text>
-      </Pressable>
+        style={styles.toggleGap}
+      />
     </Card>
   );
 }
@@ -47,7 +75,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.line,
   },
   toggleGap: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  toggleDue: {
+    borderColor: Colors.terra,
+    borderWidth: 1.5,
+    backgroundColor: Colors.card,
   },
   toggleActive: {
     backgroundColor: Colors.terra,
@@ -60,5 +93,14 @@ const styles = StyleSheet.create({
   },
   toggleTextActive: {
     color: '#fff',
+  },
+  dueLabel: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11,
+    color: Colors.terra,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
 });
