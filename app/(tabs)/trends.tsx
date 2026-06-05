@@ -10,6 +10,7 @@ import {
   getSettings,
 } from '@/lib/storage';
 import { Colors, Spacing } from '@/constants/theme';
+import { burnedFor, deficitFor } from '@/lib/calories';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,16 +45,6 @@ function todayKey(): string {
     String(t.getMonth() + 1).padStart(2, '0'),
     String(t.getDate()).padStart(2, '0'),
   ].join('-');
-}
-
-// Calories burned on a day = passive baseline + any logged exercise burn.
-function burnedFor(data: DayData, passiveCalories: number): number {
-  return passiveCalories + (data.exerciseBurned ?? 0);
-}
-
-// Deficit = burned − consumed (positive = ate under burn; negative = surplus). Null when calories unlogged.
-function deficitFor(data: DayData, passiveCalories: number): number | null {
-  return data.calories === null ? null : burnedFor(data, passiveCalories) - data.calories;
 }
 
 // ─── Reusable line renderer ─────────────────────────────────────────────────────
