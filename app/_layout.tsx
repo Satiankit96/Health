@@ -12,6 +12,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -50,9 +51,11 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <AuthGate />
-    </AuthProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 
