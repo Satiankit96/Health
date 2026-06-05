@@ -14,6 +14,8 @@ export interface DayData {
   weight: string;
   energy: number;
   notes: string;
+  exerciseBurned: number | null;
+  focusHeld: boolean;
 }
 
 export const DEFAULT_DAY: DayData = {
@@ -29,16 +31,20 @@ export const DEFAULT_DAY: DayData = {
   weight: '',
   energy: 0,
   notes: '',
+  exerciseBurned: null,
+  focusHeld: false,
 };
 
 export interface Settings {
   sugarStart: string | null;
   focusStart: string | null;
+  passiveCalories: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   sugarStart: null,
   focusStart: null,
+  passiveCalories: 2000,
 };
 
 export interface DayEntry {
@@ -191,7 +197,7 @@ export async function getSettings(): Promise<Settings> {
   try {
     const { data, error } = await supabase
       .from('user_settings')
-      .select('sugar_start, focus_start')
+      .select('sugar_start, focus_start, passive_calories')
       .eq('user_id', userId)
       .maybeSingle();
     if (error) throw error;
@@ -201,6 +207,7 @@ export async function getSettings(): Promise<Settings> {
     const settings: Settings = {
       sugarStart: data.sugar_start ?? null,
       focusStart: data.focus_start ?? null,
+      passiveCalories: data.passive_calories ?? 2000,
     };
     await writeLocalSettings(settings); // refresh cache
     return settings;
@@ -221,6 +228,7 @@ export async function saveSettings(settings: Settings): Promise<void> {
         user_id: userId,
         sugar_start: settings.sugarStart,
         focus_start: settings.focusStart,
+        passive_calories: settings.passiveCalories,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' }
@@ -272,6 +280,54 @@ export async function getRecentDays(n: number): Promise<DayEntry[]> {
     );
 
     // Refresh cache for the days that came from remote.
+    await Promise.all(
+      merged
+        .filter((e) => byDate.has(e.dateKey))
+        .map((e) => writeLocalDay(e.dateKey, e.data))
+    );
+
+    return merged;
+  } catch {
+    return readLocalRange(dateKeys);
+  }
+}
+
+export async function getDaysBetween(startKey: string, endKey: string): Promise<DayEntry[]> {
+  const start = new Date(startKey + 'T00:00:00');
+  const end = new Date(endKey + 'T00:00:00');
+
+  const dateKeys: string[] = [];
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    dateKeys.push(toDateKey(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  const userId = await getUserId();
+  if (!userId) return readLocalRange(dateKeys);
+
+  try {
+    const { data, error } = await supabase
+      .from('daily_logs')
+      .select('date, data')
+      .eq('user_id', userId)
+      .gte('date', startKey)
+      .lte('date', endKey);
+    if (error) throw error;
+
+    const byDate = new Map<string, DayData>();
+    for (const row of data ?? []) {
+      const dk = String(row.date);
+      byDate.set(dk, normalizeDay((row.data ?? {}) as Record<string, unknown>));
+    }
+
+    const local = await readLocalRange(dateKeys);
+    const merged: DayEntry[] = local.map((entry) =>
+      byDate.has(entry.dateKey)
+        ? { dateKey: entry.dateKey, data: byDate.get(entry.dateKey)! }
+        : entry
+    );
+
     await Promise.all(
       merged
         .filter((e) => byDate.has(e.dateKey))
@@ -339,6 +395,7 @@ export async function migrateLocalToCloud(userId: string): Promise<void> {
           user_id: userId,
           sugar_start: localSettings.sugarStart,
           focus_start: localSettings.focusStart,
+          passive_calories: localSettings.passiveCalories,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id', ignoreDuplicates: true }

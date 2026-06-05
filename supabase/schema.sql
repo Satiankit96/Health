@@ -16,10 +16,11 @@ create table if not exists public.daily_logs (
 -- ─── user_settings ─────────────────────────────────────────────────────────
 -- One row per user. Streak start dates (null = not started).
 create table if not exists public.user_settings (
-  user_id     uuid primary key references auth.users (id) on delete cascade,
-  sugar_start date,
-  focus_start date,
-  updated_at  timestamptz not null default now()
+  user_id          uuid primary key references auth.users (id) on delete cascade,
+  sugar_start      date,
+  focus_start      date,
+  passive_calories integer not null default 2000,
+  updated_at       timestamptz not null default now()
 );
 
 -- ─── Row-Level Security ──────────────────────────────────────────────────────
