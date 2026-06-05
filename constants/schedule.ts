@@ -1,3 +1,5 @@
+export const TRACKING_START = '2026-06-04';
+
 // Hair-care cadence. JS getDay(): Sun=0 … Sat=6
 export const SHAMPOO_DAYS = [2, 4, 0]; // Tue, Thu, Sun
 export const MICRONEEDLE_DAYS = [3, 5, 1]; // Wed, Fri, Mon (day after each shampoo)

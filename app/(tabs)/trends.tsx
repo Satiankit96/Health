@@ -1,17 +1,18 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import { useFocusEffect } from 'expo-router';
 import {
   type DayData,
   type DayEntry,
   DEFAULT_SETTINGS,
-  getRecentDays,
+  getDaysBetween,
   getSettings,
 } from '@/lib/storage';
 import { Colors, Spacing } from '@/constants/theme';
 import { burnedFor, deficitFor } from '@/lib/calories';
 import { MonthCalendar } from '@/components/MonthCalendar';
+import { TRACKING_START } from '@/constants/schedule';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,16 @@ function todayKey(): string {
     t.getFullYear(),
     String(t.getMonth() + 1).padStart(2, '0'),
     String(t.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+function shiftDate(dateKey: string, n: number): string {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return [
+    dt.getFullYear(),
+    String(dt.getMonth() + 1).padStart(2, '0'),
+    String(dt.getDate()).padStart(2, '0'),
   ].join('-');
 }
 
@@ -535,28 +546,38 @@ function WeightChart({ days, chartWidth }: { days: DayEntry[]; chartWidth: numbe
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
+const RANGE_OPTIONS = [
+  { value: 7, label: '7D' },
+  { value: 31, label: '31D' },
+  { value: 90, label: '3M' },
+] as const;
+
+type RangeValue = (typeof RANGE_OPTIONS)[number]['value'];
+
 export default function TrendsScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const chartWidth = screenWidth - 2 * Spacing.md;
-  const [days28, setDays28] = useState<DayEntry[]>([]);
+  const [days, setDays] = useState<DayEntry[]>([]);
   const [passiveCalories, setPassiveCalories] = useState(DEFAULT_SETTINGS.passiveCalories);
+  const [range, setRange] = useState<RangeValue>(31);
 
-  // Reload whenever this tab comes into focus so new Today entries appear immediately.
+  // Reload on focus and whenever the range selector changes.
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      Promise.all([getRecentDays(28), getSettings()]).then(([d, s]) => {
+      const tk = todayKey();
+      const rangeStart = shiftDate(tk, -(range - 1));
+      const startKey = rangeStart < TRACKING_START ? TRACKING_START : rangeStart;
+      Promise.all([getDaysBetween(startKey, tk), getSettings()]).then(([d, s]) => {
         if (!active) return;
-        setDays28(d);
+        setDays(d);
         setPassiveCalories(s.passiveCalories);
       });
       return () => {
         active = false;
       };
-    }, [])
+    }, [range])
   );
-
-  const days7 = days28.slice(-7);
 
   return (
     <ScrollView
@@ -564,27 +585,42 @@ export default function TrendsScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      {/* Range selector */}
+      <View style={styles.rangeRow}>
+        {RANGE_OPTIONS.map(({ value, label }) => {
+          const active = range === value;
+          return (
+            <TouchableOpacity
+              key={value}
+              style={[styles.rangePill, active && styles.rangePillActive]}
+              onPress={() => setRange(value)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.rangePillText, active && styles.rangePillTextActive]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       <Text style={styles.section}>Calories</Text>
-      <CaloriesChart days={days28} passiveCalories={passiveCalories} chartWidth={chartWidth} />
+      <CaloriesChart days={days} passiveCalories={passiveCalories} chartWidth={chartWidth} />
 
       <View style={styles.divider} />
 
       <Text style={styles.section}>Deficit vs weight</Text>
-      <DeficitWeightChart
-        days={days28}
-        passiveCalories={passiveCalories}
-        chartWidth={chartWidth}
-      />
+      <DeficitWeightChart days={days} passiveCalories={passiveCalories} chartWidth={chartWidth} />
 
       <View style={styles.divider} />
 
       <Text style={styles.section}>Sleep</Text>
       <SingleLineChart
-        days={days28}
+        days={days}
         chartWidth={chartWidth}
         series={[
           {
-            points: days28.map((d) => ({ dateKey: d.dateKey, value: parseNum(d.data.sleep) })),
+            points: days.map((d) => ({ dateKey: d.dateKey, value: parseNum(d.data.sleep) })),
             color: Colors.terra,
           },
         ]}
@@ -602,7 +638,7 @@ export default function TrendsScreen() {
       <Text style={styles.section}>This week</Text>
       <Text style={styles.chartLabel}>Active minutes</Text>
       <BarChart
-        days={days7}
+        days={days.slice(-7)}
         getValue={(d) => parseIntNum(d.moveMin)}
         barColor={Colors.sage}
         width={chartWidth}
@@ -611,7 +647,7 @@ export default function TrendsScreen() {
       <View style={styles.divider} />
 
       <Text style={styles.section}>Weight</Text>
-      <WeightChart days={days28} chartWidth={chartWidth} />
+      <WeightChart days={days} chartWidth={chartWidth} />
     </ScrollView>
   );
 }
@@ -685,5 +721,29 @@ const styles = StyleSheet.create({
     color: Colors.inkSoft,
     lineHeight: 18,
     marginTop: Spacing.xs,
+  },
+  rangeRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  rangePill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: Colors.line,
+  },
+  rangePillActive: {
+    backgroundColor: Colors.terra,
+    borderColor: Colors.terra,
+  },
+  rangePillText: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 13,
+    color: Colors.inkSoft,
+  },
+  rangePillTextActive: {
+    color: '#fff',
   },
 });
