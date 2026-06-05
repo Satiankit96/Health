@@ -15,6 +15,23 @@ function clamp(n: number, lo: number, hi: number): number {
 // ones, or null when nothing applies/is logged. Hair-care factors only apply on
 // their scheduled days, so a non-shampoo day is never penalised for no shampoo.
 export function dayScore(dateKey: string, data: DayData): number | null {
+  const hasData =
+    data.sleep !== '' ||
+    data.moveMin !== '' ||
+    data.moveNote !== '' ||
+    data.notes !== '' ||
+    data.weight !== '' ||
+    data.calories !== null ||
+    data.exerciseBurned !== null ||
+    data.water > 0 ||
+    data.mealQuality > 0 ||
+    data.energy > 0 ||
+    data.sugarFree ||
+    data.focusHeld ||
+    data.shampoo ||
+    data.microneedle;
+  if (!hasData) return null;
+
   const factors: number[] = [];
 
   // Always applicable.
